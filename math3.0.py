@@ -28,7 +28,7 @@ async def start(message: types.Message):
 
 
 @dp.message_handler(commands=['new_problem'])
-async def test(message: types.Message, state: FSMContext):
+async def new_problem(message: types.Message, state: FSMContext):
     int1 = randint(11, 99)
     int2 = randint(11, 99)
     msg = f"{int1} * {int2} ="
@@ -62,6 +62,14 @@ async def check_cond(message, state: FSMContext):
         await state.finish()
         await history_y(message)
         return 0
+    elif text == '/new_problem':
+        await state.finish()
+        await new_problem(message, state)
+        return 0
+    elif text == '/history_pers':
+        await state.finish()
+        await history_pers(message)
+        return 0
     return 1
 
 
@@ -87,7 +95,7 @@ async def test(callback: types.callback_query):
 
 
 @dp.message_handler(commands=['history_pers'])
-async def history_p(message: types.Message):
+async def history_pers(message: types.Message):
     int1 = randint(1, 10)
     names = ['Тарас Бульба-Боровець', 'Мельник', 'Бандера', 'Шухевич', 'Кирило Осьмак', 'Олена Теліга',
              'Іван Багряний (Іван Лозов’ягін)', 'Олексій Берест', 'Іван Кожедуб', 'Амет-Хан Султан']
