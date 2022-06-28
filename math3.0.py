@@ -70,6 +70,10 @@ async def check_cond(message, state: FSMContext):
         await state.finish()
         await history_pers(message)
         return 0
+    elif text == '/start':
+        await state.finish()
+        await start(message)
+        return 0
     return 1
 
 
