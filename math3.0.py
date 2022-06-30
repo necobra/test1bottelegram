@@ -22,20 +22,22 @@ async def start(message: types.Message):
     b2 = types.reply_keyboard.KeyboardButton('/history_p')
     b3 = types.reply_keyboard.KeyboardButton('/history_y')
     b4 = types.reply_keyboard.KeyboardButton('/history_pers')
-    rmk.row(b1, b2, b3, b4)
+    b5 = types.reply_keyboard.KeyboardButton('/history_pers2')
+    rmk.row(b1, b2, b3, b4, b5)
     msg = "Меню"
     await bot.send_message(message.chat.id, msg, reply_markup=rmk)
 
 
 @dp.message_handler(commands=['new_problem'])
 async def new_problem(message: types.Message, state: FSMContext):
-    int1 = randint(11, 99)
-    int2 = randint(11, 99)
-    msg = f"{int1} * {int2} ="
-    await bot.send_message(message.from_user.id, msg)
-    async with state.proxy() as qdata:
-        qdata['ans'] = int1*int2
-    await Form.ans_user.set()
+    await bot.send_message(message.from_user.id, "функция ушла в запой")
+#     int1 = randint(11, 99)
+#     int2 = randint(11, 99)
+#     msg = f"{int1} * {int2} ="
+#     await bot.send_message(message.from_user.id, msg)
+#     async with state.proxy() as qdata:
+#         qdata['ans'] = int1*int2
+#     await Form.ans_user.set()
 
 
 @dp.message_handler(state=Form.ans_user)
@@ -116,6 +118,27 @@ async def test(callback: types.callback_query):
     await callback.message.edit_caption(name)
     await callback.answer()
 
+    
+@dp.message_handler(commands=['history_pers2'])
+async def history_pers2(message: types.Message):
+    int1 = randint(1, 2)
+    names = ['Шумський', 'Волобуєв']
+    # print(len(names))
+    rmk = types.inline_keyboard.InlineKeyboardMarkup()
+    b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'pers2_{int1}')
+    rmk.add(b1)
+    await bot.send_message(message.from_user.id, f'<b>{names[int1]}</b>', reply_markup=rmk)
+
+
+@dp.callback_query_handler(Text(startswith='pers2'))
+async def test(callback: types.callback_query):
+    n = callback.data[6:]
+    ans = ["Радянський державний діяч, член КП(б)У, народний комісар освіти УСРР (1919 р., 1924—1927 рр.), прихильник політики українізації, звинувачений у «націоналістичному ухилі»",
+           "Український учений-економіст, професор політекономії, викладач Харківського механіко-машинобудівного інституту, автор дискусійної статті «До проблем української економіки» (1928 р.), у якій виклав концепцію економічної самодостатності УСРР. Жертва сталінського терору."]
+    text = f'<b>{callback.message.text}</b>\n{ans[n]}'
+    await callback.message.edit_text(text)
+    await callback.answer()
+    
 
 @dp.message_handler(commands=['history_y'])
 async def history_y(message: types.Message):
