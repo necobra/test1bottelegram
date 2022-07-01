@@ -1,3 +1,5 @@
+import random
+
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from random import randint
@@ -34,7 +36,8 @@ async def start(message: types.Message):
 async def info(message: types.Message):
     msg = "/add_pers\nname@\ndescrp@\nportrait(посилання або 0)@\ntopic(цифра))@\ntype(0-побічні чи 1-головні)@\n" \
           "(!після кожного @ - абзац)\n\n" \
-          "/test_descrp a(0 чи 1-важність персонажів) b(номер теми, за замовчуванням-всі теми)\n\n" \
+          "/test_descrp a(0 чи 1-важність персонажів) b(номер теми, за замовчуванням-всі теми)\n" \
+          "аналогічно /test_descrp_all, /test_photo\n\n" \
           "Список тем:\n" \
           "1 - різне\n" \
           "2 - 1 світова, революції\n" \
@@ -55,6 +58,7 @@ async def test(message: types.Message):
 
 
 async def important(st, photo):
+    st += ' '
     z = st.find(' ')
 
     try:
@@ -100,19 +104,36 @@ async def test_descrp(message: types.Message, state: FSMContext):
     name = rez[int1][1]
     descrp = rez[int1][2]
 
-    async with state.proxy() as qdata:
-        qdata['ans'] = name
-
     rmk = types.inline_keyboard.InlineKeyboardMarkup()
-    b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'name_ans')
+    b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'name_ans={name}')
     rmk.add(b1)
     await bot.send_message(message.from_user.id, descrp, reply_markup=rmk)
 
 
+@dp.message_handler(commands=['test_descrp_all'])
+async def test_descrp_all(message: types.Message, state: FSMContext):
+    if message.text.startswith('Характеристика - имя'):
+        st = message.text[25:]
+    else:
+        st = message.text[17:]
+    # print(st)
+    rez = await important(st, 0)
+    # print(rez)
+    random.shuffle(rez)
+    for i in rez:
+
+        name = i[1]
+        descrp = i[2]
+
+        rmk = types.inline_keyboard.InlineKeyboardMarkup()
+        b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'name_ans={name}')
+        rmk.add(b1)
+        await bot.send_message(message.from_user.id, descrp, reply_markup=rmk)
+
+
 @dp.callback_query_handler(Text(startswith='name_ans'))
 async def test(callback: types.callback_query, state: FSMContext):
-    async with state.proxy() as qdata:
-        name = qdata['ans']
+    name = callback.data[9:]
     text = f'{callback.message.text}\n\n<b>{name}</b>'
     await callback.message.edit_text(text)
     await callback.answer()
@@ -132,11 +153,8 @@ async def test_photo(message: types.Message, state: FSMContext):
     name = rez[int1][1]
     url = rez[int1][3]
 
-    async with state.proxy() as qdata:
-        qdata['ans'] = name
-
     rmk = types.inline_keyboard.InlineKeyboardMarkup()
-    b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'name_ans')
+    b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'name_ans={name}')
     rmk.add(b1)
     await bot.send_message(message.from_user.id, url, reply_markup=rmk)
 
@@ -144,13 +162,13 @@ async def test_photo(message: types.Message, state: FSMContext):
 @dp.message_handler(commands=['add_pers'])
 async def add_pers(message: types.Message):
     text = message.text
-    ass = text.split('@\n')
+    ass = text.split('\n')
     # print(ass)
-    name = ass[0][10:]
-    descrp = ass[1]
-    portrait = ass[2]
-    topic = ass[3]
-    type = ass[4][0:1]
+    name = ass[1]
+    descrp = ass[2]
+    portrait = ass[3]
+    topic = ass[4]
+    type = ass[5]
     db.add_reminder(name, descrp, portrait, topic, type)
     await bot.send_message(message.from_user.id, "+")
 
