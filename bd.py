@@ -37,5 +37,16 @@ class BotDB:
                                          (type, photo))
             return result
 
+    def add_date(self, name, date):
+        with self.connection:
+            return self.cursor.execute("INSERT INTO `dates` (`name`, `date`) "
+                                       "VALUES(?,?)", (name, date))
+
+    def get_dates(self):
+        with self.connection:
+            result = self.cursor.execute("SELECT * FROM `dates`",
+                                         ())
+            return result
+
     def close(self):
         self.connection.close()

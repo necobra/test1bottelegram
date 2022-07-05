@@ -1,32 +1,25 @@
 import random
 
 from aiogram import Bot, Dispatcher, executor, types
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from random import randint
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.dispatcher.filters import Text
 
 from bd import BotDB
 
 bot = Bot(token='5502925067:AAGHrx-77qnydu_xcb9XE8vMaCVEpu4KKQA', parse_mode='html')
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
+dp = Dispatcher(bot)
 
 db = BotDB('database.db')
-
-
-class Form(StatesGroup):
-    ans = State()
 
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
     rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
     b1 = types.reply_keyboard.KeyboardButton('Характеристика - имя')
-    b2 = types.reply_keyboard.KeyboardButton('Портрет - имя')
-    b3 = types.reply_keyboard.KeyboardButton('Інформація')
-    rmk.row(b1, b2, b3)
+    b2 = types.reply_keyboard.KeyboardButton('Фото питання')
+    b3 = types.reply_keyboard.KeyboardButton('Питання на дату')
+    b4 = types.reply_keyboard.KeyboardButton('Інформація')
+    rmk.row(b1, b2, b3, b4)
     msg = "Меню"
     await bot.send_message(message.chat.id, msg, reply_markup=rmk)
 
@@ -37,12 +30,12 @@ async def info(message: types.Message):
     msg = "/add_pers\nname@\ndescrp@\nportrait(посилання або 0)@\ntopic(цифра))@\ntype(0-побічні чи 1-головні)@\n" \
           "(!після кожного @ - абзац)\n\n" \
           "/test_descrp a(0 чи 1-важність персонажів) b(номер теми, за замовчуванням-всі теми)\n" \
-          "аналогічно /test_descrp_all, /test_photo\n\n" \
+          "аналогічно /test_descrp_all, /test_photo\n" \
+          "/add_date (shift+enter)name(shift+enter)date\n\n" \
           "Список тем:\n" \
           "1 - різне\n" \
           "2 - 1 світова, революції\n" \
-          "3 - встановлення ком режиму\n" \
-          "4 - утв ком режиму\n" \
+          "3 - встановлення ком режиму, утвердж ком режиму\n" \
           "5 - зх тер міжвоєннтй період\n" \
           "6 - 2 св\n" \
           "7 - десталінізація\n" \
@@ -60,12 +53,12 @@ async def test(message: types.Message):
 async def important(st, photo):
     st += ' '
     z = st.find(' ')
-
+    # print(st)
     try:
         type = int(st[:z])
     except:
         type = 0
-
+    # print(type)
     try:
         topic = int(st[z + 1:])
     except:
@@ -92,13 +85,18 @@ async def important(st, photo):
 
 @dp.message_handler(Text(startswith='Характеристика - имя'))
 @dp.message_handler(commands=['test_descrp'])
-async def test_descrp(message: types.Message, state: FSMContext):
+async def test_descrp(message: types.Message):
     if message.text.startswith('Характеристика - имя'):
         st = message.text[21:]
     else:
         st = message.text[13:]
 
     rez = await important(st, 0)
+
+    for i in range(len(rez)):
+        if rez[i][2] == '0':
+            rez.pop(i)
+
     # print(rez)
     int1 = randint(0, len(rez) - 1)
     name = rez[int1][1]
@@ -111,7 +109,7 @@ async def test_descrp(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(commands=['test_descrp_all'])
-async def test_descrp_all(message: types.Message, state: FSMContext):
+async def test_descrp_all(message: types.Message):
     if message.text.startswith('Характеристика - имя'):
         st = message.text[25:]
     else:
@@ -131,21 +129,43 @@ async def test_descrp_all(message: types.Message, state: FSMContext):
         await bot.send_message(message.from_user.id, descrp, reply_markup=rmk)
 
 
+@dp.message_handler(Text(startswith='Питання на дату'))
+@dp.message_handler(commands=['test_date_all'])
+async def test_descrp(message: types.Message):
+    if message.text.startswith('Питання на дату'):
+        st = message.text[16:]
+    else:
+        st = message.text[15:]
+    # print(st)
+    # rez = await important(st, 0)
+    # print(rez)
+    rez = db.get_dates().fetchall()
+    random.shuffle(rez)
+    for i in rez:
+        name = i[1]
+        date = i[2]
+
+        rmk = types.inline_keyboard.InlineKeyboardMarkup()
+        b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'name_ans={date}')
+        rmk.add(b1)
+        await bot.send_message(message.from_user.id, name, reply_markup=rmk)
+
+
 @dp.callback_query_handler(Text(startswith='name_ans'))
-async def test(callback: types.callback_query, state: FSMContext):
+async def test(callback: types.callback_query):
     name = callback.data[9:]
     text = f'{callback.message.text}\n\n<b>{name}</b>'
     await callback.message.edit_text(text)
     await callback.answer()
 
 
-@dp.message_handler(Text(startswith='Портрет - имя'))
+@dp.message_handler(Text(startswith='Фото питання'))
 @dp.message_handler(commands=['test_photo'])
-async def test_photo(message: types.Message, state: FSMContext):
-    if message.text.startswith('Портрет - имя'):
+async def test_photo(message: types.Message):
+    if message.text.startswith('Фото питання'):
         st = message.text[13:]
     else:
-        st = message.text[11:]
+        st = message.text[12:]
 
     rez = await important(st, 1)
     # print(rez)
@@ -170,6 +190,17 @@ async def add_pers(message: types.Message):
     topic = ass[4]
     type = ass[5]
     db.add_reminder(name, descrp, portrait, topic, type)
+    await bot.send_message(message.from_user.id, "+")
+
+
+@dp.message_handler(commands=['add_date'])
+async def add_pers(message: types.Message):
+    text = message.text
+    ass = text.split('\n')
+    print(ass)
+    name = ass[1]
+    date = ass[2]
+    db.add_date(name, date)
     await bot.send_message(message.from_user.id, "+")
 
 if __name__ == '__main__':
