@@ -93,19 +93,18 @@ async def test_descrp(message: types.Message):
 
     rez = await important(st, 0)
 
-    for i in range(len(rez)):
-        if rez[i][2] == '0':
-            rez.pop(i)
-
     # print(rez)
-    int1 = randint(0, len(rez) - 1)
-    name = rez[int1][1]
-    descrp = rez[int1][2]
+    random.shuffle(rez)
+    for i in rez:
+        if i[2] != '0':
+            name = i[1]
+            descrp = i[2]
 
-    rmk = types.inline_keyboard.InlineKeyboardMarkup()
-    b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'name_ans={name}')
-    rmk.add(b1)
-    await bot.send_message(message.from_user.id, descrp, reply_markup=rmk)
+            rmk = types.inline_keyboard.InlineKeyboardMarkup()
+            b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'name_ans={name}')
+            rmk.add(b1)
+            await bot.send_message(message.from_user.id, descrp, reply_markup=rmk)
+            break
 
 
 @dp.message_handler(commands=['test_descrp_all'])
@@ -118,22 +117,17 @@ async def test_descrp_all(message: types.Message):
     rez = await important(st, 0)
     # print(rez)
 
-    for i in range(len(rez)):
-        if rez[i][2] == '0':
-            # print(rez[i])
-            rez.pop(i)
-
     random.shuffle(rez)
     for i in rez:
+        if i[2] != '0':
+            name = i[1]
+            descrp = i[2]
 
-        name = i[1]
-        descrp = i[2]
+            rmk = types.inline_keyboard.InlineKeyboardMarkup()
+            b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'name_ans={name}')
+            rmk.add(b1)
 
-        rmk = types.inline_keyboard.InlineKeyboardMarkup()
-        b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'name_ans={name}')
-        rmk.add(b1)
-
-        await bot.send_message(message.from_user.id, descrp, reply_markup=rmk)
+            await bot.send_message(message.from_user.id, descrp, reply_markup=rmk)
 
 
 @dp.message_handler(Text(startswith='Питання на дату'))
