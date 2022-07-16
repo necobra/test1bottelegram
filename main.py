@@ -117,6 +117,12 @@ async def test_descrp_all(message: types.Message):
     # print(st)
     rez = await important(st, 0)
     # print(rez)
+
+    for i in range(len(rez)):
+        if rez[i][2] == '0':
+            # print(rez[i])
+            rez.pop(i)
+
     random.shuffle(rez)
     for i in rez:
 
@@ -126,6 +132,7 @@ async def test_descrp_all(message: types.Message):
         rmk = types.inline_keyboard.InlineKeyboardMarkup()
         b1 = types.inline_keyboard.InlineKeyboardButton(text="Відповідь", callback_data=f'name_ans={name}')
         rmk.add(b1)
+
         await bot.send_message(message.from_user.id, descrp, reply_markup=rmk)
 
 
@@ -139,7 +146,10 @@ async def test_descrp(message: types.Message):
     # print(st)
     # rez = await important(st, 0)
     # print(rez)
-    rez = db.get_dates().fetchall()
+    if st == '':
+        rez = db.get_dates_all().fetchall()
+    else:
+        rez = db.get_dates(int(st)).fetchall()
     random.shuffle(rez)
     for i in rez:
         name = i[1]
@@ -200,7 +210,8 @@ async def add_pers(message: types.Message):
     print(ass)
     name = ass[1]
     date = ass[2]
-    db.add_date(name, date)
+    topic = ass[3]
+    db.add_date(name, date, topic)
     await bot.send_message(message.from_user.id, "+")
 
 if __name__ == '__main__':

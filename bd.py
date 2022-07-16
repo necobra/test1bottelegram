@@ -37,12 +37,18 @@ class BotDB:
                                          (type, photo))
             return result
 
-    def add_date(self, name, date):
+    def add_date(self, name, date, topic):
         with self.connection:
-            return self.cursor.execute("INSERT INTO `dates` (`name`, `date`) "
-                                       "VALUES(?,?)", (name, date))
+            return self.cursor.execute("INSERT INTO `dates` (`name`, `date`, `topic`) "
+                                       "VALUES(?,?)", (name, date, topic))
 
-    def get_dates(self):
+    def get_dates(self, topic):
+        with self.connection:
+            result = self.cursor.execute("SELECT * FROM `dates` WHERE `topic` = ?",
+                                         (topic,))
+            return result
+
+    def get_dates_all(self):
         with self.connection:
             result = self.cursor.execute("SELECT * FROM `dates`",
                                          ())
