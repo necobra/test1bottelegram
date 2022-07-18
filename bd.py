@@ -40,7 +40,7 @@ class BotDB:
     def add_date(self, name, date, topic):
         with self.connection:
             return self.cursor.execute("INSERT INTO `dates` (`name`, `date`, `topic`) "
-                                       "VALUES(?,?)", (name, date, topic))
+                                       "VALUES(?,?,?)", (name, date, topic))
 
     def get_dates(self, topic):
         with self.connection:
