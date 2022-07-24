@@ -32,6 +32,7 @@ class Form(StatesGroup):
     edit_q = State()
     edit_q_q = State()
     edit_q_ans = State()
+    select_subject = State()
 
 
 @dp.message_handler(commands=['test'], state="*")
@@ -49,7 +50,8 @@ async def start(message: types.Message, state: FSMContext):
     b1 = types.reply_keyboard.KeyboardButton('Історія ЗНО')
     b2 = types.reply_keyboard.KeyboardButton('Математика')
     b3 = types.reply_keyboard.KeyboardButton('Англ(тест)')
-    rmk.row(b1, b2, b3)
+    b4 = types.reply_keyboard.KeyboardButton('Укр')
+    rmk.row(b1, b2, b3, b4)
     msg = "Виберіть потрібний предмет"
     await bot.send_message(message.chat.id, msg, reply_markup=rmk)
 
@@ -77,6 +79,7 @@ async def func(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(Text(startswith='Редагування'), state=Form.history)
+@dp.message_handler(Text(startswith='Редагування'), state=Form.select_subject)
 async def func(message: types.Message, state: FSMContext):
     await Form.change.set()
     rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -91,7 +94,12 @@ async def func(message: types.Message, state: FSMContext):
 
 @dp.message_handler(Text(startswith='Повернутися назад'), state=Form.change)
 async def func(message: types.Message, state: FSMContext):
-    await history(message, state)
+    async with state.proxy() as qdata:
+        subject_id = qdata['subject_id']
+    if subject_id == 1:
+        await history(message, state)
+    elif subject_id == 4:
+        await ukr(message, state)
 
 
 @dp.message_handler(Text(startswith='Редагувати пріоритети тем'), state=Form.change)
@@ -199,6 +207,7 @@ async def func(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(Text(startswith='Тема'), state=Form.history)
+@dp.message_handler(Text(startswith='Тема'), state=Form.select_subject)
 async def topics(message: types.Message, state: FSMContext):
     await Form.topics.set()
     async with state.proxy() as qdata:
@@ -221,7 +230,12 @@ async def topics(message: types.Message, state: FSMContext):
 
 @dp.message_handler(Text(startswith='Повернутися назад'), state=Form.topics)
 async def func(message: types.Message, state: FSMContext):
-    await history(message, state)
+    async with state.proxy() as qdata:
+        subject_id = qdata['subject_id']
+    if subject_id == 1:
+        await history(message, state)
+    elif subject_id == 4:
+        await ukr(message, state)
 
 
 @dp.message_handler(Text(startswith='Добавити нову тему'), state=Form.topics)
@@ -259,7 +273,10 @@ async def func(message: types.Message, state: FSMContext):
         topic_priot = text[1]
     except:
         topics_list = db.get_topics(subject_id)
-        topic_priot = max(topics_list, key=lambda x: x[3])[3]+1
+        try:
+            topic_priot = max(topics_list, key=lambda x: x[3])[3]+1
+        except:
+            topic_priot = 1
 
     try:
         topic_priot = int(topic_priot)
@@ -280,38 +297,59 @@ async def func(message: types.Message, state: FSMContext):
 
 
 async def print_topic(topic_id, chat_id, state: FSMContext):
-    await Form.topic.set()
-    pers = db.get_pers(topic_id)
-    photos = db.get_photos(topic_id)
-    dates = db.get_dates(topic_id)
     async with state.proxy() as qdata:
-        qdata['pers'] = pers
-        qdata['photos'] = photos
-        qdata['dates'] = dates
-    # print(photos)
-    k1 = len(pers)
-    k2 = len(photos)
-    k3 = len(dates)
+        subject_id = qdata['subject_id']
+    await Form.topic.set()
+    if subject_id == 1:
+        pers = db.get_pers(topic_id)
+        photos = db.get_photos(topic_id)
+        dates = db.get_dates(topic_id)
+        async with state.proxy() as qdata:
+            qdata['pers'] = pers
+            qdata['photos'] = photos
+            qdata['dates'] = dates
+        # print(photos)
+        k1 = len(pers)
+        k2 = len(photos)
+        k3 = len(dates)
 
-    rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
-    msg = ""
-    if k1 + k2 + k3 == 0:
-        msg += "В даній темі питань немає\n"
+        rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
+        msg = ""
+        if k1 + k2 + k3 == 0:
+            msg += "В даній темі питань немає\n"
+        else:
+            b = types.reply_keyboard.KeyboardButton("Випадкове питання")
+            rmk.add(b)
+        if k1 > 0:
+            b = types.reply_keyboard.KeyboardButton("Персоналії")
+            rmk.add(b)
+            msg += f"Кількість питань по персонажам: {k1}\n"
+        if k2 > 0:
+            b = types.reply_keyboard.KeyboardButton("Візуальні питання")
+            rmk.add(b)
+            msg += f"Кількість візуальних питань: {k2}\n"
+        if k3 > 0:
+            b = types.reply_keyboard.KeyboardButton("Дати")
+            rmk.add(b)
+            msg += f"Кількість питань по датах: {k3}\n"
+
     else:
-        b = types.reply_keyboard.KeyboardButton("Випадкове питання")
-        rmk.add(b)
-    if k1 > 0:
-        b = types.reply_keyboard.KeyboardButton("Персоналії")
-        rmk.add(b)
-        msg += f"Кількість питань по персонажам: {k1}\n"
-    if k2 > 0:
-        b = types.reply_keyboard.KeyboardButton("Візуальні питання")
-        rmk.add(b)
-        msg += f"Кількість візуальних питань: {k2}\n"
-    if k3 > 0:
-        b = types.reply_keyboard.KeyboardButton("Дати")
-        rmk.add(b)
-        msg += f"Кількість питань по датах: {k3}\n"
+        qs = db.get_questions(topic_id)
+        async with state.proxy() as qdata:
+            qdata['questions'] = qs
+        k = len(qs)
+
+        rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
+        msg = ""
+        if k == 0:
+            msg += "В даній темі питань немає\n"
+        else:
+            b = types.reply_keyboard.KeyboardButton("Випадкове питання")
+            rmk.add(b)
+            b = types.reply_keyboard.KeyboardButton("Усі запитання")
+            rmk.add(b)
+            msg += f"Кількість питань у темі: {k}\n"
+
     msg += "Оберіть дію"
     b1 = types.reply_keyboard.KeyboardButton("Повернутися до списку тем")
     b2 = types.reply_keyboard.KeyboardButton("Добавити нове запитання")
@@ -337,7 +375,13 @@ async def func(message: types.Message, state: FSMContext):
 @dp.message_handler(Text(startswith='Випадкове питання'), state=Form.topic)
 async def func(message: types.Message, state: FSMContext):
     async with state.proxy() as qdata:
-        questions = qdata['pers'] + qdata['photos'] + qdata['dates']
+        subject_id = qdata['subject_id']
+    if subject_id == 1:
+        async with state.proxy() as qdata:
+            questions = qdata['pers'] + qdata['photos'] + qdata['dates']
+    else:
+        async with state.proxy() as qdata:
+            questions = qdata['questions']
     random1 = randint(0, len(questions)-1)
 
     question = questions[random1]
@@ -354,7 +398,13 @@ async def func(callback: types.callback_query, state: FSMContext):
     data = callback.data.split('_')
     index = int(data[1])
     async with state.proxy() as qdata:
-        questions = qdata['pers'] + qdata['photos'] + qdata['dates']
+        subject_id = qdata['subject_id']
+    if subject_id == 1:
+        async with state.proxy() as qdata:
+            questions = qdata['pers'] + qdata['photos'] + qdata['dates']
+    else:
+        async with state.proxy() as qdata:
+            questions = qdata['questions']
     ans = questions[index][1]
     text = f'{callback.message.text}\n\n<b>{ans}</b>'
     await callback.message.edit_text(text)
@@ -374,6 +424,11 @@ async def func(message: types.Message, state: FSMContext):
 @dp.message_handler(Text(startswith='Дати'), state=Form.topic)
 async def func(message: types.Message, state: FSMContext):
     await set_q('dates', state, message)
+
+
+@dp.message_handler(Text(startswith='Усі запитання'), state=Form.topic)
+async def func(message: types.Message, state: FSMContext):
+    await set_q('questions', state, message)
 
 
 async def set_q(q_type, state: FSMContext, message):
@@ -412,14 +467,21 @@ async def func(message: types.Message, state: FSMContext):
 @dp.message_handler(Text(startswith='Добавити нове запитання'), state=Form.topic)
 async def func(message: types.Message, state: FSMContext):
     await Form.add_q.set()
+    async with state.proxy() as qdata:
+        subject_id = qdata['subject_id']
     rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
-    b1 = types.reply_keyboard.KeyboardButton("Персоналії")
-    b2 = types.reply_keyboard.KeyboardButton("Візуальне")
-    b3 = types.reply_keyboard.KeyboardButton("Дата")
-    b4 = types.reply_keyboard.KeyboardButton("Верніть мене!")
-    rmk.row(b1, b2, b3, b4)
-    msg = "Виберіть тип питання"
-    await bot.send_message(message.chat.id, msg, reply_markup=rmk)
+    if subject_id == 1:
+        b1 = types.reply_keyboard.KeyboardButton("Персоналії")
+        b2 = types.reply_keyboard.KeyboardButton("Візуальне")
+        b3 = types.reply_keyboard.KeyboardButton("Дата")
+        b4 = types.reply_keyboard.KeyboardButton("Верніть мене!")
+        rmk.row(b1, b2, b3, b4)
+        msg = "Виберіть тип питання"
+        await bot.send_message(message.chat.id, msg, reply_markup=rmk)
+    else:
+        async with state.proxy() as qdata:
+            qdata['type'] = 'questions'
+        await important(message, state)
 
 
 @dp.message_handler(Text(startswith='Верніть мене!'), state=Form.add_q)
@@ -480,6 +542,8 @@ async def func(message: types.Message, state: FSMContext):
             db.add_photo(ans, q, topic_id)
         elif t == 'dates':
             db.add_date(q, ans, topic_id)
+        else:
+            db.add_question(ans, q, topic_id)
         msgs = ['Як же ти харош', 'Як ти це робиш?', '11/10', 'Чомусь все працює..']
     except:
         msgs = ['Сервер дед інсайд', 'Трапилась халепа', 'Я тебе ніколи не покину... А ні, покину(невдала спроба)']
@@ -490,18 +554,23 @@ async def func(message: types.Message, state: FSMContext):
 @dp.message_handler(Text(startswith='Редагувати запитання'), state=Form.topic)
 async def func(message: types.Message, state: FSMContext):
     await Form.edit_q.set()
-    rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
-    b1 = types.reply_keyboard.KeyboardButton("Персоналії")
-    b2 = types.reply_keyboard.KeyboardButton("Візуальне")
-    b3 = types.reply_keyboard.KeyboardButton("Дата")
-    b4 = types.reply_keyboard.KeyboardButton("Верніть мене!")
-    rmk.row(b1, b2, b3, b4)
-    msg = "Виберіть тип запитань"
-    await bot.send_message(message.chat.id, msg, reply_markup=rmk)
+    async with state.proxy() as qdata:
+        subject_id = qdata['subject_id']
+    if subject_id == 1:
+        rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
+        b1 = types.reply_keyboard.KeyboardButton("Персоналії")
+        b2 = types.reply_keyboard.KeyboardButton("Візуальне")
+        b3 = types.reply_keyboard.KeyboardButton("Дата")
+        b4 = types.reply_keyboard.KeyboardButton("Верніть мене!")
+        rmk.row(b1, b2, b3, b4)
+        msg = "Виберіть тип запитань"
+        await bot.send_message(message.chat.id, msg, reply_markup=rmk)
+    else:
+        await edit_q(message, state)
 
 
 @dp.message_handler(state=Form.edit_q)
-async def func(message: types.Message, state: FSMContext):
+async def edit_q(message: types.Message, state: FSMContext):
     if message.text.startswith("Персоналії"):
         t = 'pers'
     elif message.text.startswith("Візуальне"):
@@ -509,7 +578,7 @@ async def func(message: types.Message, state: FSMContext):
     elif message.text.startswith("Дата"):
         t = 'dates'
     else:
-        t = 'da blia'
+        t = 'questions'
 
     async with state.proxy() as qdata:
         questions = qdata[t]
@@ -593,6 +662,21 @@ async def func(message: types.Message, state: FSMContext):
     await Form.math.set()
     await bot.send_message(message.chat.id, "1234")
 
+
+@dp.message_handler(Text(startswith='Укр'), state=None)
+async def ukr(message: types.Message, state: FSMContext):
+    await Form.select_subject.set()
+    async with state.proxy() as qdata:
+        qdata['subject_id'] = 4
+
+    rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
+    b0 = types.reply_keyboard.KeyboardButton('Вибрати інший предмет')
+    b1 = types.reply_keyboard.KeyboardButton('Тема')
+    b2 = types.reply_keyboard.KeyboardButton('Редагування')
+
+    rmk.row(b1, b2, b0)
+    msg = "Меню укр"
+    await bot.send_message(message.chat.id, msg, reply_markup=rmk)
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)

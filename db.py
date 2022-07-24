@@ -89,5 +89,16 @@ class BotDB:
             return self.cursor.execute(f"UPDATE `{t}` SET `ans` = ? WHERE `id` = ?",
                                        (new_ans, q_id))
 
+    def get_questions(self, topic):
+        with self.connection:
+            result = self.cursor.execute("SELECT * FROM `questions` WHERE `topic_id` = ?",
+                                         (topic,))
+            return result.fetchall()
+
+    def add_question(self, ans, q, topic_id):
+        with self.connection:
+            return self.cursor.execute("INSERT INTO `questions` (`ans`, `q`, `topic_id`) "
+                                       "VALUES(?,?,?)", (ans, q, topic_id))
+
     def close(self):
         self.connection.close()
