@@ -100,5 +100,11 @@ class BotDB:
             return self.cursor.execute("INSERT INTO `questions` (`ans`, `q`, `topic_id`) "
                                        "VALUES(?,?,?)", (ans, q, topic_id))
 
+    def get_all_questions(self, t):
+        with self.connection:
+            result = self.cursor.execute(f"SELECT * FROM `{t}`",
+                                         ())
+            return result.fetchall()
+
     def close(self):
         self.connection.close()

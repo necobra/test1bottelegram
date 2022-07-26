@@ -67,10 +67,56 @@ async def history(message: types.Message, state: FSMContext):
     b0 = types.reply_keyboard.KeyboardButton('Вибрати інший предмет')
     b1 = types.reply_keyboard.KeyboardButton('Тема')
     b2 = types.reply_keyboard.KeyboardButton('Редагування')
+    b3 = types.reply_keyboard.KeyboardButton('Запитання')
 
-    rmk.row(b1, b2, b0)
+    rmk.row(b1, b2).row(b3, b0)
     msg = "Меню історії"
     await bot.send_message(message.chat.id, msg, reply_markup=rmk)
+
+
+@dp.message_handler(Text(startswith='Запитання'), state=Form.history)
+async def func(message: types.Message, state: FSMContext):
+    await Form.topic.set()
+    pers = db.get_all_questions('pers')
+    photos = db.get_all_questions('photos')
+    dates = db.get_all_questions('dates')
+    async with state.proxy() as qdata:
+        qdata['pers'] = pers
+        qdata['photos'] = photos
+        qdata['dates'] = dates
+    # print(photos)
+    k1 = len(pers)
+    k2 = len(photos)
+    k3 = len(dates)
+
+    rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
+    msg = ""
+    if k1 + k2 + k3 == 0:
+        msg += "Питань немає\n"
+    else:
+        b = types.reply_keyboard.KeyboardButton("Випадкове питання")
+        rmk.add(b)
+    if k1 > 0:
+        b = types.reply_keyboard.KeyboardButton("Персоналії")
+        rmk.add(b)
+        msg += f"Кількість питань по персонажам: {k1}\n"
+    if k2 > 0:
+        b = types.reply_keyboard.KeyboardButton("Візуальні питання")
+        rmk.add(b)
+        msg += f"Кількість візуальних питань: {k2}\n"
+    if k3 > 0:
+        b = types.reply_keyboard.KeyboardButton("Дати")
+        rmk.add(b)
+        msg += f"Кількість питань по датах: {k3}\n"
+    msg += "Оберіть дію"
+    b1 = types.reply_keyboard.KeyboardButton("Повернутися до меню предмету")
+    rmk.row(b1)
+    await bot.send_message(message.chat.id, msg, reply_markup=rmk)
+
+
+@dp.message_handler(Text(startswith='Повернутися до меню предмету'), state=Form.topic)
+async def func(message: types.Message, state: FSMContext):
+    await history(message, state)
 
 
 @dp.message_handler(Text(startswith='Вибрати інший предмет'), state="*")
@@ -547,7 +593,7 @@ async def func(message: types.Message, state: FSMContext):
         msgs = ['Як же ти харош', 'Як ти це робиш?', '11/10', 'Чомусь все працює..']
     except:
         msgs = ['Сервер дед інсайд', 'Трапилась халепа', 'Я тебе ніколи не покину... А ні, покину(невдала спроба)']
-    r1 = randint(0, len(msgs))
+    r1 = randint(0, len(msgs)-1)
     await bot.send_message(message.chat.id, msgs[r1], reply_markup=rmk)
 
 
