@@ -33,6 +33,7 @@ class Form(StatesGroup):
     edit_q_q = State()
     edit_q_ans = State()
     select_subject = State()
+    math_problem = State()
 
 
 @dp.message_handler(commands=['test'], state="*")
@@ -706,7 +707,51 @@ async def func(message: types.Message, state: FSMContext):
 @dp.message_handler(Text(startswith='Математика'), state=None)
 async def func(message: types.Message, state: FSMContext):
     await Form.math.set()
-    await bot.send_message(message.chat.id, "1234")
+    rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
+    b0 = types.reply_keyboard.KeyboardButton('Вибрати інший предмет')
+    b1 = types.reply_keyboard.KeyboardButton('Випадковий приклад')
+
+    rmk.row(b1, b0)
+    msg = "Меню матем"
+    await bot.send_message(message.chat.id, msg, reply_markup=rmk)
+
+
+@dp.message_handler(Text(startswith='Випадковий приклад'), state=Form.math)
+async def func(message: types.Message, state: FSMContext):
+    await Form.math_problem.set()
+    type_flag = randint(0, 1)
+    if type_flag:
+        int1 = randint(11, 99)
+        int2 = randint(11, 99)
+    else:
+        int1 = randint(101, 999)
+        int2 = randint(2, 9)
+
+    async with state.proxy() as qdata:
+        qdata['math_problem_ans'] = str(int1*int2)
+
+    msg = f"{int1} * {int2} = ?"
+    await bot.send_message(message.chat.id, msg)
+
+
+@dp.message_handler(state=Form.math_problem)
+async def func(message: types.Message, state: FSMContext):
+    await Form.math.set()
+    user_ans = message.text
+    async with state.proxy() as qdata:
+        ans = qdata['math_problem_ans']
+
+    rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
+    b0 = types.reply_keyboard.KeyboardButton('Вибрати інший предмет')
+    b1 = types.reply_keyboard.KeyboardButton('Випадковий приклад')
+    rmk.row(b1, b0)
+
+    if user_ans == ans:
+        msgs = ['Бездоганно', 'Абсолютно правильно!', 'Ага', 'Правильно', '✅']
+        msg = msgs[randint(0, 4)]
+    else:
+        msg = ans
+    await bot.send_message(message.chat.id, msg, reply_markup=rmk)
 
 
 @dp.message_handler(Text(startswith='Укр'), state=None)
