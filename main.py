@@ -4,7 +4,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
-from aiogram import Bot, Dispatcher, executor, types
+from    aiogram import Bot, Dispatcher, executor, types
 from random import randint
 from aiogram.dispatcher.filters import Text
 
@@ -50,7 +50,7 @@ async def start(message: types.Message, state: FSMContext):
     rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
     b1 = types.reply_keyboard.KeyboardButton('Історія ЗНО')
     b2 = types.reply_keyboard.KeyboardButton('Математика')
-    b3 = types.reply_keyboard.KeyboardButton('Англ(тест)')
+    b3 = types.reply_keyboard.KeyboardButton('Англ')
     b4 = types.reply_keyboard.KeyboardButton('Укр')
     rmk.row(b1, b2, b3, b4)
     msg = "Виберіть потрібний предмет"
@@ -147,6 +147,8 @@ async def func(message: types.Message, state: FSMContext):
         await history(message, state)
     elif subject_id == 4:
         await ukr(message, state)
+    elif subject_id == 5:
+        await eng(message, state)
 
 
 @dp.message_handler(Text(startswith='Редагувати пріоритети тем'), state=Form.change)
@@ -283,6 +285,8 @@ async def func(message: types.Message, state: FSMContext):
         await history(message, state)
     elif subject_id == 4:
         await ukr(message, state)
+    elif subject_id == 5:
+        await eng(message, state)
 
 
 @dp.message_handler(Text(startswith='Добавити нову тему'), state=Form.topics)
@@ -618,6 +622,7 @@ async def func(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Form.edit_q)
 async def edit_q(message: types.Message, state: FSMContext):
+    await Form.topic.set()
     if message.text.startswith("Персоналії"):
         t = 'pers'
     elif message.text.startswith("Візуальне"):
@@ -768,6 +773,23 @@ async def ukr(message: types.Message, state: FSMContext):
     rmk.row(b1, b2, b0)
     msg = "Меню укр"
     await bot.send_message(message.chat.id, msg, reply_markup=rmk)
+
+
+@dp.message_handler(Text(startswith='Англ'), state=None)
+async def eng(message: types.Message, state: FSMContext):
+    await Form.select_subject.set()
+    async with state.proxy() as qdata:
+        qdata['subject_id'] = 5
+
+    rmk = types.reply_keyboard.ReplyKeyboardMarkup(resize_keyboard=True)
+    b0 = types.reply_keyboard.KeyboardButton('Вибрати інший предмет')
+    b1 = types.reply_keyboard.KeyboardButton('Тема')
+    b2 = types.reply_keyboard.KeyboardButton('Редагування')
+
+    rmk.row(b1, b2, b0)
+    msg = "Меню англ"
+    await bot.send_message(message.chat.id, msg, reply_markup=rmk)
+
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
